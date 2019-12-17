@@ -1,13 +1,29 @@
 import axios from "axios";
 
-const API = axios.create({ baseURL: "https://centralerros.herokuapp.com" });
+const API = axios.create({ baseURL: "https://centralerrosapp.herokuapp.com" });
 
 const getUsers = async ({ token }) => {
-  const { data } = await API.get(`/logins/${token}`);
+  const { data } = await API.get(`/logins/${token}`)
+  .then(function(response){
+    console.log(response.data); 
+    console.log(response.status);
+    return response.data; 
+  });
   return data;
 };
 
-const login = async ( history, email, pwd ) => {
+const getUser = async ( token, call) => {
+  const { data } = await API.get(`/findlogin/${token}`)
+  .then(function(response){
+    console.log(response.data); 
+    console.log(response.status);
+    return response.data; 
+  });
+  call(data);
+  console.log(data);
+};
+
+const login = async ( history, email, pwd, call ) => {
   const requestInfo = {
     method: "POST",
     body: JSON.stringify({ email: email, pwd: pwd }),
@@ -15,8 +31,8 @@ const login = async ( history, email, pwd ) => {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*"
     }
-  };
-  fetch(`https://centralerros.herokuapp.com/login`, requestInfo)
+  };     
+  fetch(`https://centralerrosapp.herokuapp.com/login`, requestInfo)
     .then(response => {
       if (response.ok) {
         console.log("login ok");
@@ -26,21 +42,31 @@ const login = async ( history, email, pwd ) => {
         throw new Error("não foi possível fazer o login");
       }
     })
-    .then(token => {
-      localStorage.setItem("central-erros-auth-token", token);
-      history.push("/dashboard");
+    .then(data => {
+      const json = JSON.parse(data);
+      if(json.status === "OK") {
+        localStorage.setItem("central-erros-auth-token", json.token);
+        history.push("/dashboard");
+      } else {
+        call(json.status);
+        console.log(json.status);
+        history.push("/");
+      }
     })
     .catch(error => {
-      alert(error.message);
+      console.log(error.message);
+      call( error.message);
+      history.push("/");
     });
 };
 
 const getLogs = async ({ token }) => {
-  //const { data } = await API.get(`/logs/${token}`).response.json();
-  console.log(token);
-  let response = await fetch(`https://api.github.com/users/jaquiel`);
-  let data = await response.json()
-  console.log(data);
+  const { data } = await API.get(`/logs/${token}`)
+  .then(function(response){
+    console.log(response.data); 
+    console.log(response.status);
+    return response.data; 
+  });
   return data;
 };
 
@@ -54,7 +80,7 @@ const register = async (history, name, email, pwd) => {
     }
   };
 
-  fetch(`https://centralerros.herokuapp.com/savelogin`, requestInfo)
+  fetch(`https://centralerrosapp.herokuapp.com/savelogin`, requestInfo)
     .then(response => {
       if (response.ok) {
         console.log("usuário cadastrado com sucesso");
@@ -65,14 +91,11 @@ const register = async (history, name, email, pwd) => {
       }
     })
     .then(token => {
-      //browserHistory.push('/');
-      //console.log(history)
       history.push("/");
     })
     .catch(error => {
-      //console.log(error.message);
       alert(error.message);
     });
 };
 
-export { login, getUsers, getLogs, register };
+export { login, getUser, getUsers, getLogs, register };
